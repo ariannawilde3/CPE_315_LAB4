@@ -8,7 +8,7 @@ public class lab4 {
     public static ArrayList<Instruction> instructionsList = new ArrayList<>();
     public static int dataMemory[] = new int[8192];
     public static int pc = 0;
-    public static int desiredPcLocation = 0;
+    public static int desiredPcLocation = -1;
     public static int lastPc = 0;
     public static List<Instruction> pipeline = new ArrayList<>(4);
     public static HashMap<String, Integer> registerNameToIntegerMap = new HashMap<>();
@@ -91,30 +91,27 @@ public class lab4 {
                     }
     
                     for (int i = 0; i < numSteps && pc < instructionsList.size(); i++) {
-                        Instruction instruction = instructionsList.get(pc);
-
-                        if(lastPc != pc || pc == 0) {
-                            lastPc = pc;
-                            desiredPcLocation = ProcessInstructionHelper.ProcessInstruction(instruction); 
-                        }
-
-                        processPipelineInstruction(instruction, false);
-                        
+                        Instruction instruction = null;
                         // In squash, exhuast pipeline
                         if(desiredPcLocation >= 0) {
-                            int j = 0;
-                            while (pc < instructionsList.size() && j < 3) {
-                                if(i== totalInstructions){
-                                    break;
-                                }
+                            instruction = instructionsList.get(pc);
+                            processPipelineInstruction(instruction, true);
 
-                                instruction = instructionsList.get(pc);
-                                processPipelineInstruction(instruction, true);
-                                i++;
+                            if(pc == desiredPcLocation) {
+                                pc = desiredPcLocation;
+                                desiredPcLocation = -1;
+                            }
+                        } else {
+
+                            instruction = instructionsList.get(pc);
+
+                            if(lastPc != pc || pc == 0) {
+                                lastPc = pc;
+                                desiredPcLocation = ProcessInstructionHelper.ProcessInstruction(instruction); 
                             }
 
-                            pc = desiredPcLocation;
-                        } 
+                            processPipelineInstruction(instruction, false);  
+                        }                  
                     }
 
                     printPipelineState();
@@ -124,29 +121,26 @@ public class lab4 {
                 case "r":                    
                     while (pc < instructionsList.size()) {
                         
-                        Instruction instruction = instructionsList.get(pc);
-
-                        if(lastPc != pc || pc == 0) {
-                            lastPc = pc;
-                            desiredPcLocation = ProcessInstructionHelper.ProcessInstruction(instruction); 
-                        }
-
-                        processPipelineInstruction(instruction, false);
-                        
+                        Instruction instruction = null;
                         // In squash, exhuast pipeline
                         if(desiredPcLocation >= 0) {
-                            int i = 0;
-                            while (pc < instructionsList.size() && i < 3) {
-                                if(i== totalInstructions){
-                                    break;
-                                }
+                            instruction = instructionsList.get(pc);
+                            processPipelineInstruction(instruction, true);
 
-                                instruction = instructionsList.get(pc);
-                                processPipelineInstruction(instruction, true);
-                                i++;
+                            if(pc == desiredPcLocation) {
+                                pc = desiredPcLocation;
+                                desiredPcLocation = -1;
+                            }
+                        } else {
+
+                            instruction = instructionsList.get(pc);
+
+                            if(lastPc != pc || pc == 0) {
+                                lastPc = pc;
+                                desiredPcLocation = ProcessInstructionHelper.ProcessInstruction(instruction); 
                             }
 
-                            pc = desiredPcLocation;
+                            processPipelineInstruction(instruction, false);  
                         } 
                          
                     }
@@ -214,22 +208,21 @@ public class lab4 {
             pipeline.set(1, pipeline.get(0));
             pipeline.set(0, new Instruction("squash"));  // Insert NOP at EX stage
             totalCycles++;
-            totalCycles++;
         } else if(exStage != null && (exStage.getOperationString().equals("beq")|| exStage.getOperationString().equals("bne"))  && pc+1 == desiredPcLocation) {
-            pc = desiredPcLocation + 1;  // Increment PC only if no stall
+            pc = desiredPcLocation;  // Increment PC only if no stall
             // Shift pipeline stages with a stall (NOP)
             pipeline.set(3, pipeline.get(2));
             pipeline.set(2, new Instruction("squash"));  // Insert NOP at EX stage
             pipeline.set(1, new Instruction("squash"));  // Insert NOP at EX stage
             pipeline.set(0, new Instruction("squash"));  // Insert NOP at EX stage
             totalCycles++;
-            totalCycles++;
-
         } else {
             advancePipeline();
             pipeline.set(0, nextInstruction);  // Load new instruction into IF stage
             pc++;  // Increment PC only if no stall
-            totalCycles++;
+            if(!inSquash) {
+                totalCycles++;
+            }
         }
     
         //printPipelineState();
