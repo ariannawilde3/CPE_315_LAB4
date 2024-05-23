@@ -248,7 +248,7 @@ public class lab4 {
     }
     
     static public void printPipelineState() {
-        System.out.println("PC\tIF/ID\tID/EXE\tEXE/MEM\tMEM/WB");
+        System.out.println("pc\tif/id\tid/exe\texe/mem\tmem/wb");
         System.out.print(pc + "\t");  // Print the current program counter
         for (int i = 0; i < pipeline.size(); i++) {
             Instruction instr = pipeline.get(i);
