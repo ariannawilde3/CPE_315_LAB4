@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.*;
 
-public class lab3 {
+public class lab4 {
 
     public static HashMap<String, Integer> labelToLineMap = new HashMap<>();
     public static HashMap<String, String> labelToInstructionMap = new HashMap<>();
