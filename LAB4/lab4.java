@@ -90,7 +90,7 @@ public class lab4 {
                         numSteps = 1;
                     }
     
-                    for (int i = 0; i < numSteps; i++) {
+                    for (int i = 0; i < numSteps && pc < instructionsList.size(); i++) {
                         Instruction instruction = instructionsList.get(pc);
 
                         if(lastPc != pc || pc == 0) {
@@ -123,6 +123,7 @@ public class lab4 {
     
                 case "r":                    
                     while (pc < instructionsList.size()) {
+                        
                         Instruction instruction = instructionsList.get(pc);
 
                         if(lastPc != pc || pc == 0) {

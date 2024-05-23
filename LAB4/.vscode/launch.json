@@ -17,7 +17,8 @@
             "mainClass": "lab4",
             "projectName": "LAB4_10d93ead",
             "args": [
-                "lab4_test.asm"
+                "lab4_test2.asm",
+                "lab4_test2.script"
             ]
         }
     ]
