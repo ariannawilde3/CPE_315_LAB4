@@ -16,6 +16,7 @@ public class lab4 {
 
     public static int totalInstructions = 0;
     public static int totalCycles = 0;
+    public static Boolean wasNoneJumpSquash = false;
 
 
 
@@ -67,6 +68,7 @@ public class lab4 {
                 case "h":                    
                     System.out.println("h = show help");
                     System.out.println("d = dump register state");
+                    System.out.println("p = show pipeline registers");
                     System.out.println("s = single step through the program (i.e. execute 1 instruction and stop)");
                     System.out.println("s num = step through num instructions of the program");
                     System.out.println("r = run until the program ends");
@@ -100,6 +102,7 @@ public class lab4 {
                             if(pc == desiredPcLocation) {
                                 pc = desiredPcLocation;
                                 desiredPcLocation = -1;
+                                totalCycles++;
                             }
                         } else {
 
@@ -111,10 +114,13 @@ public class lab4 {
                             }
 
                             processPipelineInstruction(instruction, false);  
-                        }                  
+                        }                                     
                     }
 
+                    
                     printPipelineState();
+                    // printFinalStatistics();
+                    // System.out.println("\n\n\n");
                     //System.out.printf("        %d instruction(s) executed\n", numSteps);
                     break;
     
@@ -130,6 +136,10 @@ public class lab4 {
                             if(pc == desiredPcLocation) {
                                 pc = desiredPcLocation;
                                 desiredPcLocation = -1;
+                                //if(!wasNoneJumpSquash) {
+                                    totalCycles++;
+                                //    wasNoneJumpSquash = false;
+                                //}
                             }
                         } else {
 
@@ -141,10 +151,16 @@ public class lab4 {
                             }
 
                             processPipelineInstruction(instruction, false);  
-                        } 
-                         
+                        }  
+
+                        // printPipelineState();
+                        // printFinalStatistics();
+                        // System.out.println("\n\n\n");
                     }
-                    totalCycles++;
+                    // totalCycles++;
+                    // totalCycles++;
+                    // totalCycles++;
+                    // totalCycles++;                    
                     printFinalStatistics();
                     break;
 
@@ -181,6 +197,10 @@ public class lab4 {
     }
     
     static public void processPipelineInstruction(Instruction nextInstruction, Boolean inSquash) {
+        if(!inSquash) {
+            totalCycles++;
+        } 
+
         if (pipeline.isEmpty()) {
             initializePipeline();
         }
@@ -193,45 +213,96 @@ public class lab4 {
         Instruction exStage = pipeline.get(2); // IF stage
         
         if (!inSquash && idStage != null && idStage.getOperationString().equals("lw")) {
-            stall = ProcessInstructionHelper.detectDataHazard(idStage, ifStage);  // Checking hazard between IF and the next instruction
+            stall = ProcessInstructionHelper.detectDataHazard(idStage, ifStage);  // Checking hazard between IF and the next instruction            
         } 
 
         if (stall) {            
             // Insert stall in EX stage and keep existing instructions in ID and IF
-            advancePipelineStall();            
-            //totalCycles++;
+            advancePipelineStall();     
+             
         } else if(ifStage != null && (ifStage.getOperationString().equals("j") || ifStage.getOperationString().equals("jr") || ifStage.getOperationString().equals("jal")) ) {
             pc = desiredPcLocation;  // Increment PC only if no stall
             // Shift pipeline stages with a stall (NOP)
             pipeline.set(3, pipeline.get(2));
             pipeline.set(2, pipeline.get(1));
             pipeline.set(1, pipeline.get(0));
-            pipeline.set(0, new Instruction("squash"));  // Insert NOP at EX stage   
-            totalCycles++;  
-              
-        } else if(exStage != null && (exStage.getOperationString().equals("beq")|| exStage.getOperationString().equals("bne"))  && pc+1 == desiredPcLocation) {
+            pipeline.set(0, new Instruction("squash"));  // Insert NOP at EX stage               
+            
+            if(ifStage.getOperationString().equals("j")) {
+                totalCycles--; 
+            } else if(ifStage.getOperationString().equals("jr")){
+                //totalCycles++; 
+            } else if(ifStage.getOperationString().equals("jal")) {
+                //totalCycles++; 
+            }
+            else {
+                //totalCycles++;
+            }            
+            
+        } else if(exStage != null && (exStage.getOperationString().equals("j") || exStage.getOperationString().equals("jr") || exStage.getOperationString().equals("jal")) ) {
+            advancePipeline();
+            pipeline.set(0, nextInstruction);  // Load new instruction into IF stage
+            pc++;  // Increment PC only if no stall
+            //totalCycles++;
+            if(ifStage.getOperationString().equals("j")) {
+                //totalCycles++; 
+            } else if(ifStage.getOperationString().equals("jr")){
+                //totalCycles++; 
+            } else if(!ifStage.getOperationString().equals("jal")) {                
+                //totalCycles++;
+            }  else {
+                //totalCycles++;
+            }
+        }
+        else if(exStage != null && (exStage.getOperationString().equals("beq")|| exStage.getOperationString().equals("bne"))  && pc+1 == desiredPcLocation) {
             pc = desiredPcLocation;  // Increment PC only if no stall
             // Shift pipeline stages with a stall (squash)
             pipeline.set(3, pipeline.get(2));
             pipeline.set(2, new Instruction("squash"));  // Insert NOP at EX stage
             pipeline.set(1, new Instruction("squash"));  // Insert NOP at EX stage
             pipeline.set(0, new Instruction("squash"));  // Insert NOP at EX stage
-            totalCycles++;  
-            totalCycles++; 
-            totalCycles++;                   
-        } else if(exStage != null && (exStage.getOperationString().equals("beq")|| exStage.getOperationString().equals("bne")) && desiredPcLocation >= 0 && pc+1 != desiredPcLocation) {
+            //totalCycles++;  
+            //totalCycles++; 
+            //totalCycles++;                   
+        } else if(exStage != null && (exStage.getOperationString().equals("beq")|| exStage.getOperationString().equals("bne")) && desiredPcLocation >= 0 && pc+1 != desiredPcLocation) {            
+            totalCycles++;
+            totalCycles++;
+            totalCycles++;
+            wasNoneJumpSquash = true;
             advancePipeline();
             pipeline.set(0, nextInstruction);  // Load new instruction into IF stage
             pc++;  // Increment PC only if no stall
-        }  else {
+            //totalCycles++;
+        }
+        // }  else if(exStage != null && (exStage.getOperationString().equals("stall"))) {
+        //     advancePipeline();
+        //     pipeline.set(0, nextInstruction);  // Load new instruction into IF stage
+        //     pc++;  // Increment PC only if no stall
+        // }
+        else {
             advancePipeline();
             pipeline.set(0, nextInstruction);  // Load new instruction into IF stage
             pc++;  // Increment PC only if no stall
            
-            totalCycles++;
+
+            //totalCycles++;
            
         }
     
+       
+        if (pc == instructionsList.size()) {
+            for (int x=0; x<4; x++) {
+                totalCycles++;
+                pipeline.set(2, new Instruction("null"));  // Insert NOP at EX stage
+                pipeline.set(1, new Instruction("null"));  // Insert NOP at EX stage
+                pipeline.set(0, new Instruction("null"));  // Insert NOP at EX stage
+                pipeline.set(0, new Instruction("null"));  // Insert NOP at EX stage
+            }
+        }
+
+        // if(totalInstructions % 40 == 0) {
+		// 	System.out.println("break\n");
+		// }
         //printPipelineState();
     }
     
@@ -270,7 +341,7 @@ public class lab4 {
         // Shift pipeline stages with a stall (NOP)
         pipeline.set(3, pipeline.get(2));
         pipeline.set(2, pipeline.get(1));
-        pipeline.set(1, new Instruction("stall"));  // Insert NOP at EX stage
+        pipeline.set(1, new Instruction("stall"));  // Insert NOP at EX stage        
         // pipeline.set(1, pipeline.get(0));  // Move ID to EX
         // pipeline.set(0, null);  // IF stage is empty
     }
@@ -284,8 +355,6 @@ public class lab4 {
         for (int i = 0; i < 4; i++) {
             pipeline.add(null);
         }
-
-        totalCycles++;
     }
 
     static public void dumpRegisterState() {

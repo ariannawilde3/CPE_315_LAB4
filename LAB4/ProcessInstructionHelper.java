@@ -3,15 +3,23 @@ public class ProcessInstructionHelper {
 
     }
     
-    static public boolean detectDataHazard(Instruction ifStage, Instruction idStage) {
+    static public boolean detectDataHazard(Instruction idStage, Instruction ifStage) {
         boolean hazard = false;
         if (ifStage == null || idStage == null) return false;
+
+        if(idStage.getOperationString().equals("lw") && ifStage.getOperationString().equals("lw") )
+        {
+            return false;
+        }
         
         String ifSource = ifStage.getSource();
-        String ifTarget = ifStage.getTarget();
+        String ifTarget = ifStage.getTarget();        
         //String ifDest = ifStage.getDest();
         if ((idStage.getTarget() != null && idStage.getTarget().equals(ifSource)) || 
             (idStage.getTarget() != null && idStage.getTarget().equals(ifTarget))) {
+            // ||
+            // (idStage.getSource() != null && idStage.getSource().equals(ifSource)) || 
+            // (idStage.getSource() != null && idStage.getSource().equals(ifTarget))) {
             hazard = true;
         }
         return hazard;
@@ -178,6 +186,7 @@ public class ProcessInstructionHelper {
                 
                     lab4.Registers[31] = lab4.pc + 1;
                     movePcTo = getLabelAddr(instruction.getLabelName());
+                
 
                     break;
 
